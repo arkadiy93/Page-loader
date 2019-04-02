@@ -8,16 +8,17 @@ node_js:
   - node
 
 before_script:
-  - yarn global add nyc
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
 
 script:
-- nyc --reporter=lcov yarn run unit
+  - make lint
+  - make test
 
 after_script:
-  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+  - ./cc-test-reporter format-coverage -t lcov ./coverage/lcov.info
+  - ./cc-test-reporter -d after-build --exit-code $TRAVIS_TEST_RESULT
 
 notifications:
   email: false
