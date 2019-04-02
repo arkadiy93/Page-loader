@@ -14,5 +14,6 @@ export default (dir, link) => {
   return axios.get(link)
     .then(({ data }) => {
       fs.writeFile(path.join(dir, fileName), data);
-    });
+    })
+    .catch(err => console.log(err));
 };

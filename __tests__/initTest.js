@@ -4,14 +4,21 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import pageLoader from '../src';
 
-test('first test', async () => {
-  const dir = `${os.tmpdir()}`;
-  const fileName = 'hexlet-io-courses.html';
-  nock('https://hexlet.io')
-    .get('/courses')
-    .reply(200, 'Hello from Hexlet!');
+describe('download http test', () => {
+  let dir;
+  beforeAll(async () => {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'test-'));
+  });
 
-  await pageLoader(dir, 'https://hexlet.io/courses');
-  const data = await fs.readFile(path.join(dir, fileName), 'utf-8');
-  expect(data).toBe('Hello from Hexlet!');
+  test('initial test', async () => {
+    const fileName = 'hexlet-io-courses.html';
+    const hostname = 'https://hexlet.io';
+    const pathname = '/courses';
+    const body = 'Hello from Hexlet!';
+    nock(hostname).get(pathname).reply(200, body);
+
+    await pageLoader(dir, 'https://hexlet.io/courses');
+    const data = await fs.readFile(path.join(dir, fileName), 'utf-8');
+    expect(data).toBe('Hello from Hexlet!');
+  });
 });
