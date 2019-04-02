@@ -1,5 +1,5 @@
 {
-  "name": "hexlet-page-loader",
+  "name": "page-loader",
   "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
@@ -24,7 +24,7 @@
   "jest": {
     "testEnvironment": "node",
     "collectCoverage": true
-},
+  },
   "homepage": "https://github.com/arkadiy93/project-lvl3-s444#readme",
   "devDependencies": {
     "@babel/cli": "^7.2.3",
@@ -43,6 +43,9 @@
   },
   "dependencies": {
     "@babel/plugin-proposal-pipeline-operator": "^7.3.2",
-    "commander": "^2.19.0"
+    "axios": "^0.18.0",
+    "commander": "^2.19.0",
+    "lodash": "^4.17.11",
+    "nock": "^10.0.6"
   }
 }

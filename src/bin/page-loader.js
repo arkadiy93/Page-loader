@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import program from 'commander';
+import pageLoader from '..';
 
 program
   .version('0.0.1')
   .description('A page loading command line utility')
-  .option('--output <link>', 'Dowload link')
-  .action((link) => {
-    console.log(link);
+  .option('--output', 'Dowload link')
+  .arguments('<path> <url>')
+  .action((path, url) => {
+    pageLoader(path, url);
   });
 
 program.parse(process.argv);
