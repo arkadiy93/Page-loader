@@ -19,6 +19,3 @@ script:
 after_script:
   - ./cc-test-reporter format-coverage -t lcov ./coverage/lcov.info
   - ./cc-test-reporter -d after-build --exit-code $TRAVIS_TEST_RESULT
-
-notifications:
-  email: false

@@ -11,6 +11,6 @@ lint:
 	npx eslint .
 
 test:
-	npm test
+	DEBUG=page-loader npm test
 
 .PHONY: test
