@@ -24,7 +24,7 @@ A page loading command line utility
 
 Options:
   -V, --version          output the version number
-  --output <path> <url>  dowload http page and save it to the requested path
+  --output               dowload http page and save it to the requested path
   -h, --help             output usage information
 
 ```
