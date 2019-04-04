@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { promises as fs } from 'fs';
+import { promises as fs, createWriteStream } from 'fs';
 import url from 'url';
 import _ from 'lodash/fp';
 import path from 'path';
@@ -80,19 +80,17 @@ export default (dir, link) => {
     .then(() => {
       const promises = localResources.map((resourceData) => {
         const [resourceName] = Object.keys(resourceData);
-        const resourceType = resourceData.resourceName;
+        const resourceType = resourceData[resourceName];
         const resourcePath = path.join(resourcesFolderName, editResourceName(resourceName));
-        const myUrl = new URL(link);
-        myUrl.pathname = resourceName;
-
+        const resourceUrl = url.resolve(link, resourceName);
         if (resourceType === 'img') {
           return axios({
             method: 'get',
-            url: myUrl.href,
+            url: resourceUrl,
             responseType: 'stream',
-          }).then(({ data }) => fs.writeFile(resourcePath, data));
+          }).then(({ data }) => data.pipe(createWriteStream(resourcePath)));
         }
-        return axios.get(myUrl.href).then(({ data }) => fs.writeFile(resourcePath, data));
+        return axios.get(resourceUrl).then(({ data }) => fs.writeFile(resourcePath, data));
       });
       return Promise.all(promises);
     });

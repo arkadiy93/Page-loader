@@ -2,7 +2,7 @@ install:
 	npm install
 
 run:
-	npx babel-node 'src/bin/page-loader.js' --output /var/tmp https://hexlet.io/courses
+	npx babel-node 'src/bin/page-loader.js' --output /var/tmp https://www.w3schools.com/w3css/
 
 runh:
 	npx babel-node 'src/bin/page-loader.js' -h
