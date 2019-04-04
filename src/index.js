@@ -4,27 +4,35 @@ import url from 'url';
 import _ from 'lodash/fp';
 import path from 'path';
 import cheerio from 'cheerio';
-import getAttribute from './properAttributes';
+
+const getAttribute = (tagName) => {
+  const attributes = {
+    img: 'src',
+    link: 'href',
+    script: 'src',
+  };
+  return attributes[tagName];
+};
+
 
 const editResourceName = (filePath) => {
-  const [dir, ...format] = filePath.split('.');
-  const dirDashed = _.kebabCase(dir);
-  return [dirDashed, ...format].join('.');
+  const { name, ext } = path.parse(filePath);
+  const kebabName = _.kebabCase(name);
+  return `${kebabName}${ext}`;
 };
 
 export const editSourceLinks = (data, localResources, resourcesFolderName) => {
   const $ = cheerio.load(data);
-  console.log(localResources);
-  const edited = $('*').map((i, el) => {
+  const localResourcesValues = localResources.map(el => Object.keys(el)[0]);
+  $('img, link, script').each((i, el) => {
     const { tagName } = $(el).get(0);
     const attribute = getAttribute(tagName);
     const attributeValue = $(el).attr(attribute);
-    if (localResources.includes(attributeValue)) {
+    if (localResourcesValues.includes(attributeValue)) {
       $(el).attr(attribute, path.join(resourcesFolderName, editResourceName(attributeValue)));
     }
-    return el;
   });
-  return $(edited).html();
+  return $.html();
 };
 
 const createHtmlName = (link) => {
@@ -40,17 +48,18 @@ export const createResourcesFolderName = (dir, link) => {
 
 export const gatherLocalResources = (data) => {
   const $ = cheerio.load(data);
-
-  return $('*').filter((i, el) => {
-    const { tagName } = $(el).get(0);
-    const attribute = getAttribute(tagName);
-    return attribute && $(el).attr(attribute);
-  }).map((i, el) => {
+  return $('img, link, script').filter((i, el) => {
     const { tagName } = $(el).get(0);
     const attribute = getAttribute(tagName);
     return $(el).attr(attribute);
+  }).map((i, el) => {
+    const { tagName } = $(el).get(0);
+    const attribute = getAttribute(tagName);
+    const attributeValue = $(el).attr(attribute);
+    return { [attributeValue]: tagName };
   }).filter((i, el) => {
-    const { protocol } = url.parse(el);
+    const [attributeValue] = Object.keys(el);
+    const { protocol } = url.parse(attributeValue);
     return !protocol;
   })
     .get();
@@ -68,11 +77,23 @@ export default (dir, link) => {
     })
     .then(data => fs.writeFile(path.join(dir, htmlName), data))
     .then(() => fs.mkdir(resourcesFolderName))
-    .then(() => localResources.map((resourceName) => {
-      const resourcePath = path.join(resourcesFolderName, editResourceName(resourceName));
-      const myUrl = new URL(link);
-      myUrl.pathname = resourceName;
-      return axios.get(myUrl.href).then(({ data }) => fs.writeFile(resourcePath, data));
-    }))
-    .then(promises => Promise.all(promises));
+    .then(() => {
+      const promises = localResources.map((resourceData) => {
+        const [resourceName] = Object.keys(resourceData);
+        const resourceType = resourceData.resourceName;
+        const resourcePath = path.join(resourcesFolderName, editResourceName(resourceName));
+        const myUrl = new URL(link);
+        myUrl.pathname = resourceName;
+
+        if (resourceType === 'img') {
+          return axios({
+            method: 'get',
+            url: myUrl.href,
+            responseType: 'stream',
+          }).then(({ data }) => fs.writeFile(resourcePath, data));
+        }
+        return axios.get(myUrl.href).then(({ data }) => fs.writeFile(resourcePath, data));
+      });
+      return Promise.all(promises);
+    });
 };
