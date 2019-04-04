@@ -14,9 +14,10 @@ const editResourceName = (filePath) => {
 
 export const editSourceLinks = (data, localResources, resourcesFolderName) => {
   const $ = cheerio.load(data);
+  console.log(localResources);
   const edited = $('*').map((i, el) => {
     const { tagName } = $(el).get(0);
-    const attribute = getAttribute[tagName];
+    const attribute = getAttribute(tagName);
     const attributeValue = $(el).attr(attribute);
     if (localResources.includes(attributeValue)) {
       $(el).attr(attribute, path.join(resourcesFolderName, editResourceName(attributeValue)));
