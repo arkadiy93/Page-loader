@@ -26,12 +26,19 @@ Options:
   -V, --version          output the version number
   --output               dowload http page and save it to the requested path
   -h, --help             output usage information
-
 ```
 
 ```python
 $ page-loader --output /var/tmp https://hexlet.io/courses
 $ open /var/tmp/hexlet-io-courses.html
-
 ```
 [![asciicast](https://asciinema.org/a/238489.svg)](https://asciinema.org/a/238489)
+
+### Debug mode
+
+It is possible to run page loader in debug mode.
+
+```python
+$ DEBUG=page-loader page-loader --output /var/tmp https://hexlet.io/courses
+```
+[![asciicast](https://asciinema.org/a/bbtwBM86vxOB22rogwhGN8zC2.svg)](https://asciinema.org/a/bbtwBM86vxOB22rogwhGN8zC2)
