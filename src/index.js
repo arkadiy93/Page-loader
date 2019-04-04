@@ -4,6 +4,7 @@ import url from 'url';
 import _ from 'lodash/fp';
 import path from 'path';
 import cheerio from 'cheerio';
+import getAttribute from './properAttributes';
 
 const editResourceName = (filePath) => {
   const [dir, ...format] = filePath.split('.');
@@ -13,16 +14,12 @@ const editResourceName = (filePath) => {
 
 export const editSourceLinks = (data, localResources, resourcesFolderName) => {
   const $ = cheerio.load(data);
-  const properAttr = {
-    img: 'src',
-    link: 'href',
-    script: 'src',
-  };
   const edited = $('*').map((i, el) => {
     const { tagName } = $(el).get(0);
-    const attribute = $(el).attr(properAttr[tagName]);
-    if (localResources.includes(attribute)) {
-      $(el).attr(properAttr[tagName], path.join(resourcesFolderName, editResourceName(attribute)));
+    const attribute = getAttribute[tagName];
+    const attributeValue = $(el).attr(attribute);
+    if (localResources.includes(attributeValue)) {
+      $(el).attr(attribute, path.join(resourcesFolderName, editResourceName(attributeValue)));
     }
     return el;
   });
@@ -42,18 +39,15 @@ export const createResourcesFolderName = (dir, link) => {
 
 export const gatherLocalResources = (data) => {
   const $ = cheerio.load(data);
-  const properAttr = {
-    img: 'src',
-    link: 'href',
-    script: 'src',
-  };
 
   return $('*').filter((i, el) => {
     const { tagName } = $(el).get(0);
-    return properAttr[tagName] && $(el).attr(properAttr[tagName]);
+    const attribute = getAttribute(tagName);
+    return attribute && $(el).attr(attribute);
   }).map((i, el) => {
     const { tagName } = $(el).get(0);
-    return $(el).attr(properAttr[tagName]);
+    const attribute = getAttribute(tagName);
+    return $(el).attr(attribute);
   }).filter((i, el) => {
     const { protocol } = url.parse(el);
     return !protocol;
