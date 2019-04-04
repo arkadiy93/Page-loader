@@ -4,6 +4,11 @@ import url from 'url';
 import _ from 'lodash/fp';
 import path from 'path';
 import cheerio from 'cheerio';
+import debuger from 'debug';
+
+const log = debuger('page-loader');
+const axiosLog = debuger('page-loader:axios');
+
 
 const getAttribute = (tagName) => {
   const attributes = {
@@ -71,12 +76,15 @@ export default (dir, link) => {
   let localResources;
   return axios.get(link)
     .then(({ data }) => {
+      log('main html data download complete');
       localResources = gatherLocalResources(data);
       const editedData = editSourceLinks(data, localResources, resourcesFolderName);
       return editedData;
     })
     .then(data => fs.writeFile(path.join(dir, htmlName), data))
+    .then(() => log('main html file saved'))
     .then(() => fs.mkdir(resourcesFolderName))
+    .then(() => log('create resource folder'))
     .then(() => {
       const promises = localResources.map((resourceData) => {
         const [resourceName] = Object.keys(resourceData);
@@ -88,10 +96,25 @@ export default (dir, link) => {
             method: 'get',
             url: resourceUrl,
             responseType: 'stream',
-          }).then(({ data }) => data.pipe(createWriteStream(resourcePath)));
+          })
+            .then(({ data }) => data.pipe(createWriteStream(resourcePath)))
+            .catch((err) => {
+              axiosLog('Error while downloading resourses file', err);
+              throw err;
+            });
         }
-        return axios.get(resourceUrl).then(({ data }) => fs.writeFile(resourcePath, data));
+        return axios.get(resourceUrl)
+          .then(({ data }) => fs.writeFile(resourcePath, data))
+          .catch((err) => {
+            axiosLog('Error while downloading resourses file', err);
+            throw err;
+          });
       });
       return Promise.all(promises);
+    })
+    .then(() => log('additional resources download and save complete'))
+    .catch((err) => {
+      axiosLog('Error while downloading main html file', err);
+      throw err;
     });
 };

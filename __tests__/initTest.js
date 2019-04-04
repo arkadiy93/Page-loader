@@ -3,7 +3,11 @@ import os from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
 import rimraf from 'rimraf';
+import debuger from 'debug';
 import loadPage, { gatherLocalResources, editSourceLinks } from '../src';
+
+const testLog = debuger('page-loader:tests');
+
 
 describe('download http test', () => {
   let dir;
@@ -17,6 +21,7 @@ describe('download http test', () => {
   });
 
   test('test 1', async () => {
+    testLog('initiating test 1');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test1.html');
     const resourcesFolderName = path.join(dir, 'hexlet-io-courses_files');
     const body = await fs.readFile(testFilePath, 'utf-8');
@@ -34,6 +39,7 @@ describe('download http test', () => {
   });
 
   test('test 2', async () => {
+    testLog('initiating test 2');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test2.html');
     const resourcesFolderName = path.join(dir, 'hexlet-io-courses_files');
     const body = await fs.readFile(testFilePath, 'utf-8');
@@ -57,6 +63,7 @@ describe('download http test', () => {
 
 describe('additional functions testing', () => {
   test('gather local resources', async () => {
+    testLog('initiating test of gathering local resources');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test.html');
     const data = await fs.readFile(testFilePath, 'utf-8');
     const localResources = gatherLocalResources(data);
