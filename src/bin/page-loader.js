@@ -7,8 +7,8 @@ program
   .description('A page loading command line utility')
   .option('--output [path]', 'Dowload link')
   .arguments('<url>')
-  .action((path, options) => {
-    loadPage(path, options.output);
+  .action((url, option) => {
+    loadPage(option.output, url);
   });
 
 program.parse(process.argv);
