@@ -5,10 +5,10 @@ import loadPage from '..';
 program
   .version('0.0.1')
   .description('A page loading command line utility')
-  .option('--output', 'Dowload link')
-  .arguments('<path> <url>')
-  .action((path, url) => {
-    loadPage(path, url);
+  .option('--output [path]', 'Dowload link')
+  .arguments('<url>')
+  .action((path, options) => {
+    loadPage(path, options.output);
   });
 
 program.parse(process.argv);
