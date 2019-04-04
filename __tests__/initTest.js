@@ -17,21 +17,28 @@ describe('download http test', () => {
   });
 
   test('test 1', async () => {
+    const testFilePath = path.join(__dirname, '__fixtures__/html/test1.html');
+    const resourcesFolderName = path.join(dir, 'hexlet-io-courses_files');
+    const body = await fs.readFile(testFilePath, 'utf-8');
+    const localResources = gatherLocalResources(body);
+
     const fileName = 'hexlet-io-courses.html';
     const hostname = 'https://hexlet.io';
     const pathname = '/courses';
-    const body = 'Hello from Hexlet!';
     nock(hostname).get(pathname).reply(200, body);
 
     await loadPage(dir, 'https://hexlet.io/courses');
     const data = await fs.readFile(path.join(dir, fileName), 'utf-8');
-    expect(data).toBe(body);
+    const editedData = editSourceLinks(data, localResources, resourcesFolderName);
+    expect(data).toBe(editedData);
   });
 
   test('test 2', async () => {
-    const testFilePath = path.join(__dirname, '__fixtures__/test2.html');
-
+    const testFilePath = path.join(__dirname, '__fixtures__/html/test2.html');
+    const resourcesFolderName = path.join(dir, 'hexlet-io-courses_files');
     const body = await fs.readFile(testFilePath, 'utf-8');
+    const localResources = gatherLocalResources(body);
+
     const fileName = 'hexlet-io-courses.html';
     const hostname = 'https://hexlet.io';
     const pathname = '/courses';
@@ -43,14 +50,14 @@ describe('download http test', () => {
     await loadPage(dir, 'https://hexlet.io/courses');
     const data = await fs.readFile(path.join(dir, fileName), 'utf-8');
 
-    const editedBody = editSourceLinks(body, dir);
+    const editedBody = editSourceLinks(body, localResources, resourcesFolderName);
     expect(data).toBe(editedBody);
   });
 });
 
 describe('additional functions testing', () => {
   test('gather local resources', async () => {
-    const testFilePath = path.join(__dirname, '__fixtures__/test.html');
+    const testFilePath = path.join(__dirname, '__fixtures__/html/test.html');
     const data = await fs.readFile(testFilePath, 'utf-8');
     const localResources = gatherLocalResources(data);
     expect(localResources.length).toBe(4);

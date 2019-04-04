@@ -11,25 +11,22 @@ const editResourceName = (filePath) => {
   return [dirDashed, ...format].join('.');
 };
 
-export const editSourceLinks = (data, resourcesFolderName) => {
-  // under construction
-
-  // console.log(data);
+export const editSourceLinks = (data, localResources, resourcesFolderName) => {
   const $ = cheerio.load(data);
-  $('img').each((i, el) => {
-    const initSrc = $(el).attr('src');
-    $(el).attr('src', path.join(resourcesFolderName, editResourceName(initSrc)));
+  const properAttr = {
+    img: 'src',
+    link: 'href',
+    script: 'src',
+  };
+  const edited = $('*').map((i, el) => {
+    const { tagName } = $(el).get(0);
+    const attribute = $(el).attr(properAttr[tagName]);
+    if (localResources.includes(attribute)) {
+      $(el).attr(properAttr[tagName], path.join(resourcesFolderName, editResourceName(attribute)));
+    }
+    return el;
   });
-  $('link').each((i, el) => {
-    const initSrc = $(el).attr('src');
-    $(el).attr('src', path.join(resourcesFolderName, editResourceName(initSrc)));
-  });
-  $('script').each((i, el) => {
-    const initSrc = $(el).attr('src');
-    $(el).attr('src', path.join(resourcesFolderName, editResourceName(initSrc)));
-  });
-  // return $.html();
-  return data;
+  return $(edited).html();
 };
 
 const createHtmlName = (link) => {
@@ -37,7 +34,7 @@ const createHtmlName = (link) => {
   return `${_.kebabCase(path.join(hostname, pathname))}.html`;
 };
 
-const createResourcesFolderName = (link, dir) => {
+export const createResourcesFolderName = (dir, link) => {
   const { hostname, pathname } = url.parse(link);
   const folderName = `${_.kebabCase(path.join(hostname, pathname))}_files`;
   return path.join(dir, folderName);
@@ -45,35 +42,33 @@ const createResourcesFolderName = (link, dir) => {
 
 export const gatherLocalResources = (data) => {
   const $ = cheerio.load(data);
-  const localImageSources = $('img').filter((i, el) => $(el).attr('src')).map((i, el) => $(el).attr('src'))
-    .filter((i, el) => {
-      const { protocol } = url.parse(el);
-      return !protocol;
-    })
+  const properAttr = {
+    img: 'src',
+    link: 'href',
+    script: 'src',
+  };
+
+  return $('*').filter((i, el) => {
+    const { tagName } = $(el).get(0);
+    return properAttr[tagName] && $(el).attr(properAttr[tagName]);
+  }).map((i, el) => {
+    const { tagName } = $(el).get(0);
+    return $(el).attr(properAttr[tagName]);
+  }).filter((i, el) => {
+    const { protocol } = url.parse(el);
+    return !protocol;
+  })
     .get();
-  const localLinkSources = $('link').filter((i, el) => $(el).attr('src')).map((i, el) => $(el).attr('src'))
-    .filter((i, el) => {
-      const { protocol } = url.parse(el);
-      return !protocol;
-    })
-    .get();
-  const localScriptSources = $('script').filter((i, el) => $(el).attr('src')).map((i, el) => $(el).attr('src'))
-    .filter((i, el) => {
-      const { protocol } = url.parse(el);
-      return !protocol;
-    })
-    .get();
-  return [...localLinkSources, ...localImageSources, ...localScriptSources];
 };
 
 export default (dir, link) => {
   const htmlName = createHtmlName(link);
-  const resourcesFolderName = createResourcesFolderName(link, dir);
+  const resourcesFolderName = createResourcesFolderName(dir, link);
   let localResources;
   return axios.get(link)
     .then(({ data }) => {
       localResources = gatherLocalResources(data);
-      const editedData = editSourceLinks(data, resourcesFolderName);
+      const editedData = editSourceLinks(data, localResources, resourcesFolderName);
       return editedData;
     })
     .then(data => fs.writeFile(path.join(dir, htmlName), data))
