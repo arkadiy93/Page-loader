@@ -2,7 +2,7 @@ install:
 	npm install
 
 run:
-	DEBUG=page-loader npx babel-node 'src/bin/page-loader.js' --output /var/tmp https://www.w3schools.com/w3css/
+	npx babel-node 'src/bin/page-loader.js' --output /var/tmp https://www.w3schools.com/w3css/
 
 runh:
 	npx babel-node 'src/bin/page-loader.js' -h

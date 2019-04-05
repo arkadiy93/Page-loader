@@ -114,7 +114,7 @@ export default (dir, link) => {
     })
     .then(() => log('additional resources download and save complete'))
     .catch((err) => {
-      axiosLog('Error while downloading main html file', err);
+      axiosLog('Error while downloading and saving main html file', err);
       throw err;
     });
 };

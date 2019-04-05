@@ -72,3 +72,41 @@ describe('additional functions testing', () => {
     expect(localResoursesValues.length).toBe(4);
   });
 });
+
+describe('error cases testing', () => {
+  test('wrong dir test', async () => {
+    testLog('initiating wrong dir test test');
+    const testFilePath = path.join(__dirname, '__fixtures__/html/test1.html');
+    const body = await fs.readFile(testFilePath, 'utf-8');
+    const dir = '/unknown';
+
+    const hostname = 'https://hexlet.io';
+    const pathname = '/courses';
+    nock(hostname).get(pathname).reply(200, body);
+
+    await expect(loadPage(dir, 'https://hexlet.io/courses')).rejects.toThrow("ENOENT: no such file or directory, open '/unknown/hexlet-io-courses.html'");
+  });
+
+  test('restricted dir test', async () => {
+    testLog('initiating restricted dir test test');
+    const testFilePath = path.join(__dirname, '__fixtures__/html/test1.html');
+    const body = await fs.readFile(testFilePath, 'utf-8');
+    const dir = '/root';
+
+    const hostname = 'https://hexlet.io';
+    const pathname = '/courses';
+    nock(hostname).get(pathname).reply(200, body);
+    await expect(loadPage(dir, 'https://hexlet.io/courses')).rejects.toThrow("EACCES: permission denied, open '/root/hexlet-io-courses.html'");
+  });
+
+  test('page not found error', async () => {
+    testLog('initiating page not found error test');
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'test-'));
+    const hostname = 'https://hexlet.io';
+    const pathname = '/courses';
+    nock(hostname).get(pathname).reply(404);
+
+    await expect(loadPage(dir, 'https://hexlet.io/courses')).rejects.toThrow('Request failed with status code 404');
+    await rimraf(dir, () => {});
+  });
+});

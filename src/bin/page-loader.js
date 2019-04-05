@@ -12,7 +12,11 @@ program
   .arguments('<url>')
   .action((url, option) => {
     log('booting application');
-    loadPage(option.output, url);
+    loadPage(option.output, url)
+      .catch((error) => {
+        console.error(error);
+        process.exit(error.errno);
+      });
   });
 
 program.parse(process.argv);
