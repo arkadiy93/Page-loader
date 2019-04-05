@@ -6,7 +6,7 @@ import debug from 'debug';
 const log = debug('page-loader');
 
 program
-  .version('0.0.2')
+  .version('0.0.3')
   .description('A page loading command line utility')
   .option('--output [path]', 'Dowload link')
   .arguments('<url>')

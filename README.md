@@ -32,7 +32,7 @@ Options:
 $ page-loader --output /var/tmp https://hexlet.io/courses
 $ open /var/tmp/hexlet-io-courses.html
 ```
-[![asciicast](https://asciinema.org/a/238489.svg)](https://asciinema.org/a/238489)
+[![asciicast](https://asciinema.org/a/239155.svg)](https://asciinema.org/a/239155)
 
 ### Debug mode
 
