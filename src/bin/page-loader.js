@@ -13,6 +13,7 @@ program
   .action((url, option) => {
     log('booting application');
     loadPage(option.output, url)
+      .then(fileName => console.log(`Page was downloaded as '${fileName}'`))
       .catch((error) => {
         console.error(error);
         process.exit(error.errno);

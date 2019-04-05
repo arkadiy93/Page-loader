@@ -5,6 +5,7 @@ import _ from 'lodash/fp';
 import path from 'path';
 import cheerio from 'cheerio';
 import debug from 'debug';
+import Listr from 'listr';
 
 const log = debug('page-loader');
 const axiosLog = debug('page-loader:axios');
@@ -12,7 +13,11 @@ const axiosLog = debug('page-loader:axios');
 const getRequest = (resourceType) => {
   const requests = {
     img: (resourceUrl, resourcePath) => axios({ method: 'get', url: resourceUrl, responseType: 'stream' })
-      .then(({ data }) => data.pipe(createWriteStream(resourcePath)))
+      .then(({ data }) => {
+        data.pipe(createWriteStream(resourcePath));
+
+        return data.on('end', () => Promise.resolve());
+      })
       .catch((err) => {
         axiosLog('Error while downloading resourses file', err);
         throw err;
@@ -103,16 +108,23 @@ export default (dir, link) => {
     .then(() => fs.mkdir(resourcesFolderName))
     .then(() => log('create resource folder'))
     .then(() => {
-      const promises = Object.keys(localResources)
+      const tasks = Object.keys(localResources)
         .map(resourceType => localResources[resourceType].map((resourceName) => {
           const resourcePath = path.join(resourcesFolderName, editResourceName(resourceName));
           const resourceUrl = url.resolve(link, resourceName);
           const request = getRequest(resourceType);
-          return request(resourceUrl, resourcePath);
+          return {
+            title: url.resolve(link, resourceName),
+            task: () => request(resourceUrl, resourcePath),
+          };
         }));
-      return Promise.all(_.flatten(promises));
+      const taskList = new Listr(_.flatten(tasks), { concurrent: true });
+      return taskList.run();
     })
-    .then(() => log('additional resources download and save complete'))
+    .then(() => {
+      log('additional resources download and save complete');
+      return htmlName;
+    })
     .catch((err) => {
       axiosLog('Error while downloading and saving main html file', err);
       throw err;
