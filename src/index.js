@@ -4,12 +4,34 @@ import url from 'url';
 import _ from 'lodash/fp';
 import path from 'path';
 import cheerio from 'cheerio';
-import debuger from 'debug';
+import debug from 'debug';
 
-const log = debuger('page-loader');
-const axiosLog = debuger('page-loader:axios');
+const log = debug('page-loader');
+const axiosLog = debug('page-loader:axios');
 
-
+const getRequest = (resourceType) => {
+  const requests = {
+    img: (resourceUrl, resourcePath) => axios({ method: 'get', url: resourceUrl, responseType: 'stream' })
+      .then(({ data }) => data.pipe(createWriteStream(resourcePath)))
+      .catch((err) => {
+        axiosLog('Error while downloading resourses file', err);
+        throw err;
+      }),
+    script: (resourceUrl, resourcePath) => axios.get(resourceUrl)
+      .then(({ data }) => fs.writeFile(resourcePath, data))
+      .catch((err) => {
+        axiosLog('Error while downloading resourses file', err);
+        throw err;
+      }),
+    link: (resourceUrl, resourcePath) => axios.get(resourceUrl)
+      .then(({ data }) => fs.writeFile(resourcePath, data))
+      .catch((err) => {
+        axiosLog('Error while downloading resourses file', err);
+        throw err;
+      }),
+  };
+  return requests[resourceType];
+};
 const getAttribute = (tagName) => {
   const attributes = {
     img: 'src',
@@ -28,7 +50,7 @@ const editResourceName = (filePath) => {
 
 export const editSourceLinks = (data, localResources, resourcesFolderName) => {
   const $ = cheerio.load(data);
-  const localResourcesValues = localResources.map(el => Object.keys(el)[0]);
+  const localResourcesValues = _.flatten(Object.values(localResources));
   $('img, link, script').each((i, el) => {
     const { tagName } = $(el).get(0);
     const attribute = getAttribute(tagName);
@@ -53,21 +75,16 @@ export const createResourcesFolderName = (dir, link) => {
 
 export const gatherLocalResources = (data) => {
   const $ = cheerio.load(data);
-  return $('img, link, script').filter((i, el) => {
-    const { tagName } = $(el).get(0);
-    const attribute = getAttribute(tagName);
-    return $(el).attr(attribute);
-  }).map((i, el) => {
+  const localResources = { link: [], script: [], img: [] };
+  $('img, link, script').each((i, el) => {
     const { tagName } = $(el).get(0);
     const attribute = getAttribute(tagName);
     const attributeValue = $(el).attr(attribute);
-    return { [attributeValue]: tagName };
-  }).filter((i, el) => {
-    const [attributeValue] = Object.keys(el);
-    const { protocol } = url.parse(attributeValue);
-    return !protocol;
-  })
-    .get();
+    if (attributeValue && !url.parse(attributeValue).protocol) {
+      localResources[tagName] = [...localResources[tagName], attributeValue];
+    }
+  });
+  return localResources;
 };
 
 export default (dir, link) => {
@@ -86,31 +103,14 @@ export default (dir, link) => {
     .then(() => fs.mkdir(resourcesFolderName))
     .then(() => log('create resource folder'))
     .then(() => {
-      const promises = localResources.map((resourceData) => {
-        const [resourceName] = Object.keys(resourceData);
-        const resourceType = resourceData[resourceName];
-        const resourcePath = path.join(resourcesFolderName, editResourceName(resourceName));
-        const resourceUrl = url.resolve(link, resourceName);
-        if (resourceType === 'img') {
-          return axios({
-            method: 'get',
-            url: resourceUrl,
-            responseType: 'stream',
-          })
-            .then(({ data }) => data.pipe(createWriteStream(resourcePath)))
-            .catch((err) => {
-              axiosLog('Error while downloading resourses file', err);
-              throw err;
-            });
-        }
-        return axios.get(resourceUrl)
-          .then(({ data }) => fs.writeFile(resourcePath, data))
-          .catch((err) => {
-            axiosLog('Error while downloading resourses file', err);
-            throw err;
-          });
-      });
-      return Promise.all(promises);
+      const promises = Object.keys(localResources)
+        .map(resourceType => localResources[resourceType].map((resourceName) => {
+          const resourcePath = path.join(resourcesFolderName, editResourceName(resourceName));
+          const resourceUrl = url.resolve(link, resourceName);
+          const request = getRequest(resourceType);
+          return request(resourceUrl, resourcePath);
+        }));
+      return Promise.all(_.flatten(promises));
     })
     .then(() => log('additional resources download and save complete'))
     .catch((err) => {

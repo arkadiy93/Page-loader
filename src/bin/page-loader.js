@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import program from 'commander';
 import loadPage from '..';
-import debuger from 'debug';
+import debug from 'debug';
 
-const debug = debuger('page-loader');
+const log = debug('page-loader');
 
 program
   .version('0.0.2')
@@ -11,7 +11,7 @@ program
   .option('--output [path]', 'Dowload link')
   .arguments('<url>')
   .action((url, option) => {
-    debug('booting application');
+    log('booting application');
     loadPage(option.output, url);
   });
 

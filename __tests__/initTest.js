@@ -3,10 +3,11 @@ import os from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
 import rimraf from 'rimraf';
-import debuger from 'debug';
+import debug from 'debug';
+import { flatten } from 'lodash/fp';
 import loadPage, { gatherLocalResources, editSourceLinks } from '../src';
 
-const testLog = debuger('page-loader:tests');
+const testLog = debug('page-loader:tests');
 
 
 describe('download http test', () => {
@@ -67,6 +68,7 @@ describe('additional functions testing', () => {
     const testFilePath = path.join(__dirname, '__fixtures__/html/test.html');
     const data = await fs.readFile(testFilePath, 'utf-8');
     const localResources = gatherLocalResources(data);
-    expect(localResources.length).toBe(4);
+    const localResoursesValues = flatten(Object.values(localResources));
+    expect(localResoursesValues.length).toBe(4);
   });
 });
