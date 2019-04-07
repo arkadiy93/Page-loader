@@ -9,33 +9,38 @@ import Listr from 'listr';
 
 const log = debug('page-loader');
 const axiosLog = debug('page-loader:axios');
+const fsLog = debug('page-loader:file-system');
 
 const getRequest = (resourceType) => {
   const requests = {
     img: (resourceUrl, resourcePath) => axios({ method: 'get', url: resourceUrl, responseType: 'stream' })
       .then(({ data }) => {
+        axiosLog('resource %s download complete', resourceUrl);
         data.pipe(createWriteStream(resourcePath));
 
-        return data.on('end', () => Promise.resolve());
+        return data.on('end', () => {
+          fsLog('Image was saved to %s', resourcePath);
+          return Promise.resolve();
+        });
       })
       .catch((err) => {
         axiosLog('Error while downloading resourses file', err);
         throw err;
       }),
-    script: (resourceUrl, resourcePath) => axios.get(resourceUrl)
-      .then(({ data }) => fs.writeFile(resourcePath, data))
-      .catch((err) => {
-        axiosLog('Error while downloading resourses file', err);
-        throw err;
-      }),
-    link: (resourceUrl, resourcePath) => axios.get(resourceUrl)
-      .then(({ data }) => fs.writeFile(resourcePath, data))
+    default: (resourceUrl, resourcePath) => axios.get(resourceUrl)
+      .then(({ data }) => {
+        axiosLog('resource %s download complete', resourceUrl);
+        fsLog('save html data to dir %s', resourcePath);
+        return data;
+      })
+      .then(data => fs.writeFile(resourcePath, data))
       .catch((err) => {
         axiosLog('Error while downloading resourses file', err);
         throw err;
       }),
   };
-  return requests[resourceType];
+
+  return requests[resourceType] || requests.default;
 };
 const getAttribute = (tagName) => {
   const attributes = {
@@ -55,10 +60,9 @@ const editResourceName = (filePath) => {
 
 export const editSourceLinks = (data, localResources, resourcesFolderName) => {
   const $ = cheerio.load(data);
-  const localResourcesValues = _.flatten(Object.values(localResources));
+  const localResourcesValues = localResources.map(({ value }) => value);
   $('img, link, script').each((i, el) => {
-    const { tagName } = $(el).get(0);
-    const attribute = getAttribute(tagName);
+    const attribute = getAttribute($(el).get(0).tagName);
     const attributeValue = $(el).attr(attribute);
     if (localResourcesValues.includes(attributeValue)) {
       $(el).attr(attribute, path.join(resourcesFolderName, editResourceName(attributeValue)));
@@ -80,13 +84,18 @@ export const createResourcesFolderName = (dir, link) => {
 
 export const gatherLocalResources = (data) => {
   const $ = cheerio.load(data);
-  const localResources = { link: [], script: [], img: [] };
+  let localResources = [];
   $('img, link, script').each((i, el) => {
-    const { tagName } = $(el).get(0);
-    const attribute = getAttribute(tagName);
+    const attribute = getAttribute($(el).get(0).tagName);
     const attributeValue = $(el).attr(attribute);
     if (attributeValue && !url.parse(attributeValue).protocol) {
-      localResources[tagName] = [...localResources[tagName], attributeValue];
+      localResources = [
+        ...localResources,
+        {
+          type: $(el).get(0).tagName,
+          value: attributeValue,
+        },
+      ];
     }
   });
   return localResources;
@@ -98,27 +107,26 @@ export default (dir, link) => {
   let localResources;
   return axios.get(link)
     .then(({ data }) => {
-      log('main html data download complete');
+      axiosLog('Complete download main html data %s', link);
+      fsLog('save html data to dir %s', path.join(dir, htmlName));
       localResources = gatherLocalResources(data);
       const editedData = editSourceLinks(data, localResources, resourcesFolderName);
       return editedData;
     })
     .then(data => fs.writeFile(path.join(dir, htmlName), data))
-    .then(() => log('main html file saved'))
+    .then(() => fsLog('create resource folder %s', resourcesFolderName))
     .then(() => fs.mkdir(resourcesFolderName))
-    .then(() => log('create resource folder'))
     .then(() => {
-      const tasks = Object.keys(localResources)
-        .map(resourceType => localResources[resourceType].map((resourceName) => {
-          const resourcePath = path.join(resourcesFolderName, editResourceName(resourceName));
-          const resourceUrl = url.resolve(link, resourceName);
-          const request = getRequest(resourceType);
-          return {
-            title: url.resolve(link, resourceName),
-            task: () => request(resourceUrl, resourcePath),
-          };
-        }));
-      const taskList = new Listr(_.flatten(tasks), { concurrent: true });
+      const tasks = localResources.map((resource) => {
+        const resourcePath = path.join(resourcesFolderName, editResourceName(resource.value));
+        const resourceUrl = url.resolve(link, resource.value);
+        const request = getRequest(resource.type);
+        return {
+          title: url.resolve(link, resource.value),
+          task: () => request(resourceUrl, resourcePath),
+        };
+      });
+      const taskList = new Listr(tasks, { concurrent: true });
       return taskList.run();
     })
     .then(() => {

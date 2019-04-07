@@ -3,12 +3,7 @@ import os from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
 import rimraf from 'rimraf';
-import debug from 'debug';
-import { flatten } from 'lodash/fp';
 import loadPage, { gatherLocalResources, editSourceLinks } from '../src';
-
-const testLog = debug('page-loader:tests');
-
 
 describe('download http test', () => {
   let dir;
@@ -22,7 +17,6 @@ describe('download http test', () => {
   });
 
   test('test 1', async () => {
-    testLog('initiating test 1');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test1.html');
     const resourcesFolderName = path.join(dir, 'hexlet-io-courses_files');
     const body = await fs.readFile(testFilePath, 'utf-8');
@@ -40,7 +34,6 @@ describe('download http test', () => {
   });
 
   test('test 2', async () => {
-    testLog('initiating test 2');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test2.html');
     const resourcesFolderName = path.join(dir, 'hexlet-io-courses_files');
     const body = await fs.readFile(testFilePath, 'utf-8');
@@ -64,18 +57,15 @@ describe('download http test', () => {
 
 describe('additional functions testing', () => {
   test('gather local resources', async () => {
-    testLog('initiating test of gathering local resources');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test.html');
     const data = await fs.readFile(testFilePath, 'utf-8');
     const localResources = gatherLocalResources(data);
-    const localResoursesValues = flatten(Object.values(localResources));
-    expect(localResoursesValues.length).toBe(4);
+    expect(localResources.length).toBe(4);
   });
 });
 
 describe('error cases testing', () => {
   test('wrong dir test', async () => {
-    testLog('initiating wrong dir test test');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test1.html');
     const body = await fs.readFile(testFilePath, 'utf-8');
     const dir = '/unknown';
@@ -88,7 +78,6 @@ describe('error cases testing', () => {
   });
 
   test('restricted dir test', async () => {
-    testLog('initiating restricted dir test test');
     const testFilePath = path.join(__dirname, '__fixtures__/html/test1.html');
     const body = await fs.readFile(testFilePath, 'utf-8');
     const dir = '/root';
@@ -100,7 +89,6 @@ describe('error cases testing', () => {
   });
 
   test('page not found error', async () => {
-    testLog('initiating page not found error test');
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'test-'));
     const hostname = 'https://hexlet.io';
     const pathname = '/courses';
